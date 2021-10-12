@@ -13,7 +13,8 @@ const getState = ({ getStore, getActions, setStore }) => {
 					background: "white",
 					initial: "white"
 				}
-			]
+			],
+			token: JSON.parse(localStorage.getItem("token")) || []
 		},
 		actions: {
 			// Use getActions to call a function within a fuction
@@ -41,6 +42,74 @@ const getState = ({ getStore, getActions, setStore }) => {
 
 				//reset the global store
 				setStore({ demo: demo });
+			},
+			getActiveUser: async email => {
+				try {
+					const res = await fetch(`${process.env.BACKEND_URL}/user/active`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify({ email })
+					});
+					const activeUser = await res.json();
+					setStore({ activeUser: activeUser.first_name });
+					localStorage.setItem("activeUser", activeUser.first_name);
+				} catch (error) {
+					throw Error("Wrong email or password");
+				}
+			},
+			login: async (email, password, history) => {
+				try {
+					const res = await fetch(`${process.env.BACKEND_URL}/login`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify({ email, password })
+					});
+					if (res.ok) {
+						const token = await res.json();
+						localStorage.setItem("token", JSON.stringify(token));
+						console.log("The response is ok", res);
+						getActions().getActiveUser(email);
+						history.push("/profile");
+
+						return true;
+					} else {
+						throw "Something went wrong";
+					}
+				} catch (error) {
+					throw Error("Wrong email or password");
+				}
+			},
+			signup: async (email, password, first_name, last_name, setMessageState) => {
+				console.log("I am the signup function");
+				console.log(first_name);
+
+				try {
+					const res = await fetch(`${process.env.BACKEND_URL}/user`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify({ email, password, first_name, last_name, date })
+					});
+					if (res.ok) {
+						const token = await res.json();
+
+						// localStorage.setItem("first_name", JSON.stringify(first_name));
+						localStorage.setItem("token", JSON.stringify(token));
+						console.log("The response is ok", res);
+						getActions().getActiveUser(email);
+
+						return true;
+					} else {
+						throw "Something went wrong";
+					}
+				} catch (error) {
+					throw Error("Something went wrong");
+				}
 			}
 		}
 	};
